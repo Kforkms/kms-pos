@@ -1,10 +1,11 @@
 FROM dunglas/frankenphp:1-php8.4-bookworm
 
-# Install PHP extensions menggunakan helper resmi dari FrankenPHP/docker-php-extension-installer
-# Ini otomatis menginstall dependencies gd, zip, dll tanpa perlu apt-get install manual yang ribet
+# Install PHP extensions menggunakan helper resmi
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
-
 RUN install-php-extensions pdo_mysql gd zip pcntl bcmath opcache intl
+
+# Install NodeJS & NPM untuk mengeksekusi Vite build
+RUN apt-get update && apt-get install -y nodejs npm
 
 WORKDIR /app
 
@@ -15,6 +16,9 @@ COPY . .
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 ENV COMPOSER_ALLOW_SUPERUSER=1
 RUN composer install --no-dev --optimize-autoloader
+
+# Install NPM dependencies & Build Frontend Assets (Vite)
+RUN npm install && npm run build
 
 # Optimasi Laravel
 RUN php artisan config:cache && php artisan route:cache && php artisan view:cache
