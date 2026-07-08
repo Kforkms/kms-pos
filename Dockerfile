@@ -4,8 +4,12 @@ FROM dunglas/frankenphp:1-php8.4-bookworm
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
 RUN install-php-extensions pdo_mysql gd zip pcntl bcmath opcache intl
 
-# Install NodeJS & NPM untuk mengeksekusi Vite build
-RUN apt-get update && apt-get install -y nodejs npm
+# Install Node.js 22 (LTS) secara eksplisit dari Nodesource
+RUN apt-get update && apt-get install -y curl gnupg \
+    && mkdir -p /etc/apt/keyrings \
+    && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
+    && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" | tee /etc/apt/sources.list.get.d/nodesource.list \
+    && apt-get update && apt-get install -y nodejs
 
 WORKDIR /app
 
