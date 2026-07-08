@@ -1,31 +1,25 @@
 FROM dunglas/frankenphp:1-php8.4-bookworm
 
-# Install system dependencies & PHP extensions yang dibutuhkan Laravel
-RUN apt-get update && apt-get install -y \
-    git \
-    unzip \
-    libzip-dev \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -y pdo_mysql gd zip pcntl bcmath opcache
+# Install PHP extensions menggunakan helper resmi dari FrankenPHP/docker-php-extension-installer
+# Ini otomatis menginstall dependencies gd, zip, dll tanpa perlu apt-get install manual yang ribet
+COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
 
-# Set working directory
+RUN install-php-extensions pdo_mysql gd zip pcntl bcmath opcache intl
+
 WORKDIR /app
 
-# Copy seluruh source code project
+# Copy source code
 COPY . .
 
-# Install Composer
+# Install Composer dependencies
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 ENV COMPOSER_ALLOW_SUPERUSER=1
 RUN composer install --no-dev --optimize-autoloader
 
-# Jalankan optimasi internal Laravel
+# Optimasi Laravel
 RUN php artisan config:cache && php artisan route:cache && php artisan view:cache
 
-# Set permission agar web server bisa menulis file (storage & cache)
+# Set permissions
 RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache
 
 EXPOSE 80
